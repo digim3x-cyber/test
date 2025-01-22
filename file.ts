@@ -99,3 +99,21 @@ export class QuestionnaireComponent {
   </div>
 </div>
 
+          .current-question {
+  font-weight: bold;
+  border: 2px solid #007bff;
+  padding: 10px;
+  margin-bottom: 15px;
+  background-color: #f9f9f9;
+}
+
+.answered-question {
+  opacity: 0.8;
+  color: #666;
+  margin-bottom: 10px;
+}
+
+form label {
+  display: block;
+  margin: 5px 0;
+}
