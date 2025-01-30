@@ -1,60 +1,73 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
-import { Question } from './models/question.model';
+import { Question, QUESTIONS } from './model';
 
 @Injectable({
   providedIn: 'root',
 })
 export class QuestionnaireService {
   private questions = QUESTIONS;
-  private visibleQuestions: Question[] = [];
-  private visibleQuestionsSubject = new BehaviorSubject<Question[]>([]);
-  visibleQuestions$ = this.visibleQuestionsSubject.asObservable();
+  private currentQuestionSubject = new BehaviorSubject<Question | null>(this.questions[0]);
+  currentQuestion$ = this.currentQuestionSubject.asObservable();
 
-  constructor() {
-    // Na początku wyświetlamy tylko pierwsze pytanie
-    this.visibleQuestions = [this.questions[0]];
-    this.updateVisibleQuestions();
+  private history: { question: Question; answer: string }[] = [];
+
+  constructor() {}
+
+  answerQuestion(selectedAnswer: string) {
+    const currentQuestion = this.currentQuestionSubject.value;
+    if (!currentQuestion) return;
+
+    // Dodajemy do historii aktualne pytanie i wybraną odpowiedź
+    this.history.push({ question: currentQuestion, answer: selectedAnswer });
+
+    const nextQuestionId = currentQuestion.answers.find((a) => a.text === selectedAnswer)?.nextQuestionId;
+    const nextQuestion = this.questions.find((q) => q.id === nextQuestionId);
+
+    this.currentQuestionSubject.next(nextQuestion || null);
   }
 
-  answerQuestion(questionId: string, selectedAnswer: string) {
-    // Znajdź pytanie w tablicy pytań
-    const question = this.questions.find((q) => q.id === questionId);
-    if (question) {
-      question.selectedAnswer = selectedAnswer;
-
-      // Usuń wszystkie pytania, które są dziećmi tego pytania
-      const nextQuestionId = question.answers.find((a) => a.text === selectedAnswer)?.nextQuestionId;
-      this.removeChildQuestions(questionId);
-
-      // Dodaj kolejne pytanie, jeśli istnieje
-      if (nextQuestionId) {
-        const nextQuestion = this.questions.find((q) => q.id === nextQuestionId);
-        if (nextQuestion) {
-          this.visibleQuestions.push(nextQuestion);
-        }
+  goBack() {
+    if (this.history.length > 0) {
+      // Cofamy się do poprzedniego pytania i usuwamy je z historii
+      const previous = this.history.pop();
+      if (previous) {
+        this.currentQuestionSubject.next(previous.question);
       }
-
-      this.updateVisibleQuestions();
     }
-  }
-
-  private removeChildQuestions(parentQuestionId: string) {
-    const parentIndex = this.visibleQuestions.findIndex((q) => q.id === parentQuestionId);
-    if (parentIndex !== -1) {
-      this.visibleQuestions = this.visibleQuestions.slice(0, parentIndex + 1);
-    }
-  }
-
-  private updateVisibleQuestions() {
-    this.visibleQuestionsSubject.next([...this.visibleQuestions]);
   }
 }
 
+<mat-card *ngIf="currentQuestion; else endTemplate" class="question-container">
+  <mat-card-title>{{ currentQuestion.text }}</mat-card-title>
+  <mat-card-content>
+    <mat-radio-group (change)="onAnswerSelected($event.value)">
+      <mat-radio-button *ngFor="let answer of currentQuestion.answers" [value]="answer.text">
+        {{ answer.text }}
+      </mat-radio-button>
+    </mat-radio-group>
+  </mat-card-content>
 
-import { Component } from '@angular/core';
-import { QuestionnaireService } from './questionnaire.service';
-import { Question } from './models/question.model';
+  <mat-card-actions class="button-group">
+    <button mat-raised-button color="primary" (click)="goBack()" [disabled]="historyLength === 0">
+      ⬅ Wstecz
+    </button>
+  </mat-card-actions>
+</mat-card>
+
+<ng-template #endTemplate>
+  <mat-card class="question-container">
+    <mat-card-title>Dziękujemy za wypełnienie kwestionariusza!</mat-card-title>
+    <mat-card-actions>
+      <button mat-raised-button color="accent" (click)="goBack()">⬅ Wróć do poprzedniego pytania</button>
+    </mat-card-actions>
+  </mat-card>
+</ng-template>
+
+
+        import { Component } from '@angular/core';
+import { Question } from './model';
+import { QuestionnaireService } from './questionnaire-service';
 
 @Component({
   selector: 'app-questionnaire',
@@ -62,58 +75,68 @@ import { Question } from './models/question.model';
   styleUrls: ['./questionnaire.component.css'],
 })
 export class QuestionnaireComponent {
-  visibleQuestions: Question[] = [];
+  currentQuestion: Question | null = null;
+  historyLength: number = 0;
 
   constructor(private questionnaireService: QuestionnaireService) {
-    this.questionnaireService.visibleQuestions$.subscribe((questions) => {
-      this.visibleQuestions = questions;
+    this.questionnaireService.currentQuestion$.subscribe((question) => {
+      this.currentQuestion = question;
     });
   }
 
-  onAnswerSelected(questionId: string, selectedAnswer: string) {
-    this.questionnaireService.answerQuestion(questionId, selectedAnswer);
+  onAnswerSelected(selectedAnswer: string) {
+    this.questionnaireService.answerQuestion(selectedAnswer);
+    this.historyLength++;
+  }
+
+  goBack() {
+    this.questionnaireService.goBack();
+    this.historyLength--;
   }
 }
 
 
-<div *ngFor="let question of visibleQuestions; let i = index">
-  <div [ngClass]="{'current-question': i === visibleQuestions.length - 1, 'answered-question': i < visibleQuestions.length - 1}">
-    <h2>{{ question.text }}</h2>
-
-    <form>
-      <div *ngFor="let answer of question.answers">
-        <label>
-          <input
-            type="radio"
-            name="{{ question.id }}"
-            [value]="answer.text"
-            [checked]="question.selectedAnswer === answer.text"
-            (change)="onAnswerSelected(question.id, answer.text)"
-          />
-          {{ answer.text }}
-        </label>
-      </div>
-    </form>
-
-    <p *ngIf="question.selectedAnswer">Wybrano: {{ question.selectedAnswer }}</p>
-  </div>
-</div>
-
-          .current-question {
-  font-weight: bold;
-  border: 2px solid #007bff;
-  padding: 10px;
-  margin-bottom: 15px;
-  background-color: #f9f9f9;
+.question-container {
+  width: 500px;
+  margin: 20px auto;
+  padding: 20px;
+  text-align: center;
 }
 
-.answered-question {
-  opacity: 0.8;
-  color: #666;
-  margin-bottom: 10px;
+mat-radio-group {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  margin-top: 15px;
 }
 
-form label {
-  display: block;
+mat-radio-button {
   margin: 5px 0;
 }
+
+.button-group {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+button {
+  min-width: 120px;
+}
+
+mat-card {
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
