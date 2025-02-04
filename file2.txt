@@ -1,0 +1,121 @@
+/* 💎 CAŁA STRONA */
+body {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+  font-family: 'Roboto', sans-serif;
+}
+
+/* 🌟 KONTENER */
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+}
+
+/* 🎭 ANIMACJA FADE */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 📌 KARTA PYTANIA */
+.question-container {
+  width: 450px;
+  padding: 20px;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  text-align: center;
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+/* 📝 TYTUŁ PYTANIA */
+.question-title {
+  font-size: 22px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* 🎚️ RADIO GROUP */
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  gap: 10px;
+}
+
+/* 🔘 RADIO BUTTONY */
+mat-radio-button {
+  font-size: 18px;
+  color: white;
+  transition: 0.2s ease-in-out;
+}
+
+mat-radio-button:hover {
+  transform: scale(1.05);
+}
+
+/* 🎛️ PRZYCISKI */
+.button-group {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+button {
+  padding: 10px 20px;
+  font-size: 16px;
+  border-radius: 8px;
+  transition: all 0.3s ease-in-out;
+}
+
+/* 🌈 EFEKT HOVER NA PRZYCISKACH */
+button:hover {
+  transform: scale(1.1);
+  box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+
+<div class="container">
+  <mat-card *ngIf="currentQuestion; else endTemplate" class="question-container">
+    <mat-card-title class="question-title">{{ currentQuestion.text }}</mat-card-title>
+    <mat-card-content>
+      <mat-radio-group class="radio-group" (change)="onAnswerSelected($event.value)">
+        <mat-radio-button *ngFor="let answer of currentQuestion.answers" [value]="answer.text">
+          {{ answer.text }}
+        </mat-radio-button>
+      </mat-radio-group>
+    </mat-card-content>
+
+    <mat-card-actions class="button-group">
+      <button mat-flat-button color="accent" (click)="goBack()" [disabled]="historyLength === 0">
+        ⬅ Wstecz
+      </button>
+    </mat-card-actions>
+  </mat-card>
+
+  <ng-template #endTemplate>
+    <mat-card class="question-container">
+      <mat-card-title class="question-title">Dziękujemy za wypełnienie kwestionariusza!</mat-card-title>
+      <mat-card-actions class="button-group">
+        <button mat-flat-button color="primary" (click)="goBack()">⬅ Wróć do poprzedniego pytania</button>
+      </mat-card-actions>
+    </mat-card>
+  </ng-template>
+</div>
