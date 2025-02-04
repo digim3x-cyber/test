@@ -1,4 +1,82 @@
-/* 💎 CAŁA STRONA */
+import { Component } from '@angular/core';
+import { QuestionnaireService } from './questionnaire.service';
+import { Question } from '../models/question.model';
+
+@Component({
+  selector: 'app-questionnaire',
+  templateUrl: './questionnaire.component.html',
+  styleUrls: ['./questionnaire.component.css'],
+})
+export class QuestionnaireComponent {
+  currentQuestion: Question | null = null;
+  selectedAnswers: string[] = []; // Zmieniamy z pojedynczego wyboru na tablicę
+  historyLength: number = 0;
+
+  constructor(private questionnaireService: QuestionnaireService) {
+    this.questionnaireService.currentQuestion$.subscribe((question) => {
+      this.currentQuestion = question;
+      this.selectedAnswers = []; // Czyścimy odpowiedzi przy nowym pytaniu
+    });
+  }
+
+  toggleAnswer(answer: string) {
+    const index = this.selectedAnswers.indexOf(answer);
+    if (index === -1) {
+      this.selectedAnswers.push(answer);
+    } else {
+      this.selectedAnswers.splice(index, 1);
+    }
+  }
+
+  goNext() {
+    if (this.selectedAnswers.length > 0) {
+      this.questionnaireService.answerQuestion(this.selectedAnswers);
+      this.historyLength++;
+    }
+  }
+
+  goBack() {
+    this.questionnaireService.goBack();
+    this.historyLength--;
+  }
+}
+
+
+<div class="container">
+  <mat-card *ngIf="currentQuestion; else endTemplate" class="question-container">
+    <mat-card-title class="question-title">{{ currentQuestion.text }}</mat-card-title>
+    <mat-card-content>
+      <mat-checkbox
+        *ngFor="let answer of currentQuestion.answers"
+        [checked]="selectedAnswers.includes(answer.text)"
+        (change)="toggleAnswer(answer.text)"
+      >
+        {{ answer.text }}
+      </mat-checkbox>
+    </mat-card-content>
+
+    <mat-card-actions class="button-group">
+      <button mat-flat-button color="accent" (click)="goBack()" [disabled]="historyLength === 0">
+        ⬅ Wstecz
+      </button>
+      <button mat-flat-button color="primary" (click)="goNext()" [disabled]="selectedAnswers.length === 0">
+        Dalej ➡
+      </button>
+    </mat-card-actions>
+  </mat-card>
+
+  <ng-template #endTemplate>
+    <mat-card class="question-container">
+      <mat-card-title class="question-title">Dziękujemy za wypełnienie kwestionariusza!</mat-card-title>
+      <mat-card-actions class="button-group">
+        <button mat-flat-button color="primary" (click)="goBack()">⬅ Wróć do poprzedniego pytania</button>
+      </mat-card-actions>
+    </mat-card>
+  </ng-template>
+</div>
+
+
+/* 🌈 GLOBALNE TŁO */
 body {
   background: linear-gradient(135deg, #667eea, #764ba2);
   display: flex;
@@ -9,7 +87,7 @@ body {
   font-family: 'Roboto', sans-serif;
 }
 
-/* 🌟 KONTENER */
+/* 📌 KONTENER */
 .container {
   display: flex;
   justify-content: center;
@@ -52,29 +130,23 @@ body {
   text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.2);
 }
 
-/* 🎚️ RADIO GROUP */
-.radio-group {
-  display: flex;
-  flex-direction: column;
-  align-items: start;
-  gap: 10px;
-}
-
-/* 🔘 RADIO BUTTONY */
-mat-radio-button {
+/* 🔳 CHECKBOXY */
+mat-checkbox {
+  display: block;
   font-size: 18px;
   color: white;
   transition: 0.2s ease-in-out;
+  margin: 8px 0;
 }
 
-mat-radio-button:hover {
+mat-checkbox:hover {
   transform: scale(1.05);
 }
 
 /* 🎛️ PRZYCISKI */
 .button-group {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   margin-top: 20px;
 }
 
@@ -91,31 +163,3 @@ button:hover {
   box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.2);
 }
 
-
-<div class="container">
-  <mat-card *ngIf="currentQuestion; else endTemplate" class="question-container">
-    <mat-card-title class="question-title">{{ currentQuestion.text }}</mat-card-title>
-    <mat-card-content>
-      <mat-radio-group class="radio-group" (change)="onAnswerSelected($event.value)">
-        <mat-radio-button *ngFor="let answer of currentQuestion.answers" [value]="answer.text">
-          {{ answer.text }}
-        </mat-radio-button>
-      </mat-radio-group>
-    </mat-card-content>
-
-    <mat-card-actions class="button-group">
-      <button mat-flat-button color="accent" (click)="goBack()" [disabled]="historyLength === 0">
-        ⬅ Wstecz
-      </button>
-    </mat-card-actions>
-  </mat-card>
-
-  <ng-template #endTemplate>
-    <mat-card class="question-container">
-      <mat-card-title class="question-title">Dziękujemy za wypełnienie kwestionariusza!</mat-card-title>
-      <mat-card-actions class="button-group">
-        <button mat-flat-button color="primary" (click)="goBack()">⬅ Wróć do poprzedniego pytania</button>
-      </mat-card-actions>
-    </mat-card>
-  </ng-template>
-</div>
