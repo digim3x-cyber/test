@@ -9,28 +9,25 @@ import { Question } from '../models/question.model';
 })
 export class QuestionnaireComponent {
   currentQuestion: Question | null = null;
-  selectedAnswers: string[] = []; // Zmieniamy z pojedynczego wyboru na tablicę
+  selectedAnswer: string | null = null;
+  history: Map<number, string> = new Map(); // Mapa przechowująca odpowiedzi użytkownika
   historyLength: number = 0;
 
   constructor(private questionnaireService: QuestionnaireService) {
     this.questionnaireService.currentQuestion$.subscribe((question) => {
       this.currentQuestion = question;
-      this.selectedAnswers = []; // Czyścimy odpowiedzi przy nowym pytaniu
+      this.selectedAnswer = this.history.get(question.id) || null; // Przywrócenie odpowiedzi, jeśli istnieje
     });
   }
 
-  toggleAnswer(answer: string) {
-    const index = this.selectedAnswers.indexOf(answer);
-    if (index === -1) {
-      this.selectedAnswers.push(answer);
-    } else {
-      this.selectedAnswers.splice(index, 1);
-    }
+  onAnswerSelected(answer: string) {
+    this.selectedAnswer = answer;
   }
 
   goNext() {
-    if (this.selectedAnswers.length > 0) {
-      this.questionnaireService.answerQuestion(this.selectedAnswers);
+    if (this.selectedAnswer) {
+      this.history.set(this.currentQuestion!.id, this.selectedAnswer); // Zapisujemy odpowiedź
+      this.questionnaireService.answerQuestion(this.selectedAnswer);
       this.historyLength++;
     }
   }
@@ -41,25 +38,22 @@ export class QuestionnaireComponent {
   }
 }
 
-
 <div class="container">
   <mat-card *ngIf="currentQuestion; else endTemplate" class="question-container">
     <mat-card-title class="question-title">{{ currentQuestion.text }}</mat-card-title>
     <mat-card-content>
-      <mat-checkbox
-        *ngFor="let answer of currentQuestion.answers"
-        [checked]="selectedAnswers.includes(answer.text)"
-        (change)="toggleAnswer(answer.text)"
-      >
-        {{ answer.text }}
-      </mat-checkbox>
+      <mat-radio-group [(ngModel)]="selectedAnswer">
+        <mat-radio-button *ngFor="let answer of currentQuestion.answers" [value]="answer.text">
+          {{ answer.text }}
+        </mat-radio-button>
+      </mat-radio-group>
     </mat-card-content>
 
     <mat-card-actions class="button-group">
       <button mat-flat-button color="accent" (click)="goBack()" [disabled]="historyLength === 0">
         ⬅ Wstecz
       </button>
-      <button mat-flat-button color="primary" (click)="goNext()" [disabled]="selectedAnswers.length === 0">
+      <button mat-flat-button color="primary" (click)="goNext()" [disabled]="!selectedAnswer">
         Dalej ➡
       </button>
     </mat-card-actions>
@@ -74,7 +68,6 @@ export class QuestionnaireComponent {
     </mat-card>
   </ng-template>
 </div>
-
 
 /* 🌈 GLOBALNE TŁO */
 body {
@@ -130,16 +123,22 @@ body {
   text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.2);
 }
 
-/* 🔳 CHECKBOXY */
-mat-checkbox {
-  display: block;
+/* 🎚️ RADIO GROUP */
+mat-radio-group {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  gap: 10px;
+}
+
+/* 🔘 RADIO BUTTONY */
+mat-radio-button {
   font-size: 18px;
   color: white;
   transition: 0.2s ease-in-out;
-  margin: 8px 0;
 }
 
-mat-checkbox:hover {
+mat-radio-button:hover {
   transform: scale(1.05);
 }
 
