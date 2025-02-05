@@ -1,48 +1,8 @@
-import { Component } from '@angular/core';
-import { QuestionnaireService } from './questionnaire.service';
-import { Question } from '../models/question.model';
-
-@Component({
-  selector: 'app-questionnaire',
-  templateUrl: './questionnaire.component.html',
-  styleUrls: ['./questionnaire.component.css'],
-})
-export class QuestionnaireComponent {
-  currentQuestion: Question | null = null;
-  selectedAnswer: string | null = null;
-  history: Map<number, string> = new Map(); // Mapa przechowująca odpowiedzi użytkownika
-  historyLength: number = 0;
-
-  constructor(private questionnaireService: QuestionnaireService) {
-    this.questionnaireService.currentQuestion$.subscribe((question) => {
-      this.currentQuestion = question;
-      this.selectedAnswer = this.history.get(question.id) || null; // Przywrócenie odpowiedzi, jeśli istnieje
-    });
-  }
-
-  onAnswerSelected(answer: string) {
-    this.selectedAnswer = answer;
-  }
-
-  goNext() {
-    if (this.selectedAnswer) {
-      this.history.set(this.currentQuestion!.id, this.selectedAnswer); // Zapisujemy odpowiedź
-      this.questionnaireService.answerQuestion(this.selectedAnswer);
-      this.historyLength++;
-    }
-  }
-
-  goBack() {
-    this.questionnaireService.goBack();
-    this.historyLength--;
-  }
-}
-
 <div class="container">
   <mat-card *ngIf="currentQuestion; else endTemplate" class="question-container">
     <mat-card-title class="question-title">{{ currentQuestion.text }}</mat-card-title>
     <mat-card-content>
-      <mat-radio-group [(ngModel)]="selectedAnswer">
+      <mat-radio-group class="radio-group" (change)="onAnswerSelected($event.value)">
         <mat-radio-button *ngFor="let answer of currentQuestion.answers" [value]="answer.text">
           {{ answer.text }}
         </mat-radio-button>
@@ -52,9 +12,6 @@ export class QuestionnaireComponent {
     <mat-card-actions class="button-group">
       <button mat-flat-button color="accent" (click)="goBack()" [disabled]="historyLength === 0">
         ⬅ Wstecz
-      </button>
-      <button mat-flat-button color="primary" (click)="goNext()" [disabled]="!selectedAnswer">
-        Dalej ➡
       </button>
     </mat-card-actions>
   </mat-card>
@@ -69,7 +26,7 @@ export class QuestionnaireComponent {
   </ng-template>
 </div>
 
-/* 🌈 GLOBALNE TŁO */
+/* 💎 CAŁA STRONA */
 body {
   background: linear-gradient(135deg, #667eea, #764ba2);
   display: flex;
@@ -80,7 +37,7 @@ body {
   font-family: 'Roboto', sans-serif;
 }
 
-/* 📌 KONTENER */
+/* 🌟 KONTENER */
 .container {
   display: flex;
   justify-content: center;
@@ -124,7 +81,7 @@ body {
 }
 
 /* 🎚️ RADIO GROUP */
-mat-radio-group {
+.radio-group {
   display: flex;
   flex-direction: column;
   align-items: start;
@@ -145,7 +102,7 @@ mat-radio-button:hover {
 /* 🎛️ PRZYCISKI */
 .button-group {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   margin-top: 20px;
 }
 
